@@ -190,16 +190,20 @@ async function editForNextRequest(data, maxLen, index, msg) {
       message_id: msg.message_id,
     }
   );
-  bot.editMessageMedia(
-    {
-      type: 'photo',
-      media: photo
-        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo}&key=${API_KEY}`
-        : 'https://static.vecteezy.com/system/resources/previews/005/337/799/original/icon-image-not-found-free-vector.jpg',
-      caption: messageText(data),
-    },
-    editOptions
-  );
+  try {
+    bot.editMessageMedia(
+      {
+        type: 'photo',
+        media: photo
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo}&key=${API_KEY}`
+          : 'https://static.vecteezy.com/system/resources/previews/005/337/799/original/icon-image-not-found-free-vector.jpg',
+        caption: messageText(data),
+      },
+      editOptions
+    );
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 async function callback(data, maxLen, index, msg) {
