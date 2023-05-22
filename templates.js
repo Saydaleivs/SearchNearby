@@ -1,10 +1,8 @@
 function messageText(data) {
   const message =
     `🔎 ${data.name}` +
-    // `\n\n📝Без справок!` +
-    // `\n🙋🏻‍♂️Без поручителей!` +
-    `\n\n⭐ Rating ${data.rating || 'not shown'} ` +
-    // `\n📃Только по паспорту! ` +
+    `\n\n⭐ Rating ${data.rating || "ko'rsatilmagan"} ` +
+    `\n\n📞 Telefon raqam ${data.phone_number}` +
     `\n\n📍 ${data.formatted_address || ''} - ${data.url || ''}`;
   return message;
 }
