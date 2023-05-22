@@ -3,6 +3,11 @@ function messageText(data) {
     `🔎 ${data.name}` +
     `\n\n⭐ Rating ${data.rating || "ko'rsatilmagan"} ` +
     `\n\n📞 Telefon raqam ${data.phone_number || "ko'rsatilmagan"}` +
+    `\n\n${
+      data.opening_hours.open_now
+        ? '✅ Ayni damda ochiq'
+        : '❌ Ayni damda yopiq'
+    } ` +
     `\n\n📍 ${data.formatted_address || ''} - ${data.url || ''}`;
   return message;
 }

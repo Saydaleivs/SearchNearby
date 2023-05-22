@@ -167,7 +167,7 @@ async function nearbySearch(msg, index, isForEdit) {
 async function searchDetails(currentPlaceId, msg, index, maxLen, isForEdit) {
   const res = await axios({
     method: 'get',
-    url: `https://maps.googleapis.com/maps/api/place/details/json?place_id=${currentPlaceId}&fields=name%2Crating%2Cformatted_address%2Cformatted_phone_number%2Cphotos%2Cgeometry%2Curl&key=${API_KEY}`,
+    url: `https://maps.googleapis.com/maps/api/place/details/json?place_id=${currentPlaceId}&fields=name%2Crating%2Cformatted_address%2Cformatted_phone_number%2Cphotos%2Cgeometry%2Curl%2Copening_hours&key=${API_KEY}`,
     headers: {},
   });
 
