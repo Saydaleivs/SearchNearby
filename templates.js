@@ -2,7 +2,7 @@ function messageText(data) {
   const message =
     `🔎 ${data.name}` +
     `\n\n⭐ Rating ${data.rating || "ko'rsatilmagan"} ` +
-    `\n\n📞 Telefon raqam ${data.phone_number}` +
+    `\n\n📞 Telefon raqam ${data.phone_number || "ko'rsatilmagan"}` +
     `\n\n📍 ${data.formatted_address || ''} - ${data.url || ''}`;
   return message;
 }
