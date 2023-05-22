@@ -8,7 +8,7 @@ function messageText(data) {
         ? data.opening_hours.open_now
           ? '✅ Ayni damda ochiq'
           : '❌ Ayni damda yopiq'
-        : ''
+        : "❔ Ochiq yopiqligi ko'rsatilmagan"
     } ` +
     `\n\n📍 ${data.formatted_address || ''} - ${data.url || ''}`;
   return message;
