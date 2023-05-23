@@ -25,15 +25,6 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// latitude: {
-//   type: Number,
-//   required: true,
-// },
-// longitude: {
-//   type: Number,
-//   required: true,
-// },
-
 const Users = mongoose.model('users', userSchema);
 
 exports.Users = Users;

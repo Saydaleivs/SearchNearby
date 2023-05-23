@@ -14,14 +14,14 @@ function messageText(data) {
   return message;
 }
 
-function getPagination(current, maxpage, data) {
+function getPagination(current, maxpage) {
   let keys = [];
   if (current == 1) keys.push({ text: `⛔️`, callback_data: 'prev' });
   if (current > 1)
     keys.push({ text: `⬅️`, callback_data: (current - 1).toString() });
   keys.push({
     text: `${current}/${maxpage}`,
-    callback_data: current.toString(),
+    callback_data: 'same',
   });
   if (current == maxpage) keys.push({ text: `⛔️`, callback_data: 'last' });
   if (current < maxpage)

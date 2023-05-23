@@ -121,7 +121,10 @@ bot.on('callback_query', function (message) {
       text: 'Ortga qaytmoqda!',
       show_alert: false,
     });
+    bot.deleteMessage(message.message.chat.id, msg.message_id);
     getPlaceName(message);
+    return;
+  } else if (message.data == 'same') {
     return;
   }
 
