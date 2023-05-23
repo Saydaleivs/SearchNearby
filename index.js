@@ -34,7 +34,10 @@ app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 
 bot.onText(/\/start/, async (msg) => {
   askLocation(msg);
+  sendLocationToDB(msg);
+});
 
+async function sendLocationToDB(msg) {
   const isAvailableUser = await Users.findOne({ user_id: msg.from.id });
   if (isAvailableUser) return;
 
@@ -49,7 +52,7 @@ bot.onText(/\/start/, async (msg) => {
   } catch (ex) {
     console.log(ex);
   }
-});
+}
 
 function askLocation(msg) {
   const opts = {
@@ -63,7 +66,9 @@ function askLocation(msg) {
 }
 
 async function getPlaceName(msg, isNewLocation) {
-  const user = await Users.findOne({ user_id: msg.from.id });
+  const user = await Users.findOne({
+    user_id: msg.from.id,
+  });
   if (!user) return;
 
   if (isNewLocation) {
@@ -94,10 +99,21 @@ async function getPlaceName(msg, isNewLocation) {
 bot.on('location', (msg) => getPlaceName(msg, true));
 
 bot.onText(/^[^/*].*/, async (msg) => {
-  const user = await Users.findOne({ user_id: msg.from.id });
+  const user = await Users.findOne({
+    user_id: msg.from.id,
+    location: { $exists: true },
+  });
+
+  if (!user) {
+    askLocation(msg);
+    sendLocationToDB(msg);
+    return;
+  }
+
   user.place = msg.text;
   await user.save();
 
+  console.log(msg);
   nearbySearch(msg);
 });
 
@@ -121,7 +137,7 @@ bot.on('callback_query', function (message) {
       text: 'Ortga qaytmoqda!',
       show_alert: false,
     });
-    bot.deleteMessage(message.message.chat.id, msg.message_id);
+    bot.deleteMessage(msg.chat.id, msg.message_id);
     getPlaceName(message);
     return;
   } else if (message.data == 'same') {
@@ -140,7 +156,7 @@ async function nearbySearch(msg, index, isForEdit) {
   if (!index) {
     index = 0;
   } else {
-    index = index - 1;
+    index--;
   }
 
   const config = {
@@ -152,7 +168,7 @@ async function nearbySearch(msg, index, isForEdit) {
   const res = await axios(config).catch((err) => console.log(err));
   if (!res.data['results'][index]) {
     return bot.sendMessage(
-      msg.from.id,
+      msg.chat.id,
       `Afsuski bu joy yaqin atrofda topilmadi 😔`,
       {
         reply_markup: JSON.stringify({
