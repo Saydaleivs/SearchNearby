@@ -209,7 +209,7 @@ async function editForNextRequest(data, maxLen, index, msg) {
     }
   );
   try {
-    bot.editMessageMedia(
+    await bot.editMessageMedia(
       {
         type: 'photo',
         media: photo
@@ -220,7 +220,7 @@ async function editForNextRequest(data, maxLen, index, msg) {
       editOptions
     );
   } catch (error) {
-    console.log(error);
+    return;
   }
 }
 
