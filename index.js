@@ -113,7 +113,6 @@ bot.onText(/^[^/*].*/, async (msg) => {
   user.place = msg.text;
   await user.save();
 
-  console.log(msg);
   nearbySearch(msg);
 });
 
