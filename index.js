@@ -6,7 +6,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const URL = 'https://search-nearby-bot.onrender.com';
 
 const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token);
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -33,7 +33,6 @@ bot.setWebHook(`${URL}/bot${token}`);
 
 app.post(`/bot${token}`, (req, res) => {
   bot.processUpdate(req.body);
-  console.log('webhook received');
   res.sendStatus(200);
 });
 
