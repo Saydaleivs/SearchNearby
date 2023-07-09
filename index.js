@@ -3,7 +3,7 @@ require('dotenv').config();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const API_KEY = process.env.API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
-const URL = 'https://search-nearby-bot.onrender.com';
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(token);
@@ -29,7 +29,7 @@ mongoose
     console.log('Connected to MongoDB...');
   });
 
-bot.setWebHook(`${URL}/bot${token}`);
+bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
 
 app.post(`/bot${token}`, (req, res) => {
   bot.processUpdate(req.body);
