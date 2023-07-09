@@ -33,7 +33,6 @@ bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
 
 app.post(`/bot${token}`, (req, res) => {
   bot.processUpdate(req.body);
-  console.log('webhook recieved successfully');
   res.sendStatus(200);
 });
 
