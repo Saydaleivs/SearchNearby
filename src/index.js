@@ -11,11 +11,13 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { default: axios } = require('axios');
 const { messageText, getPagination } = require('./templates');
 const { Users } = require('./models/users');
+const { sendLocationToDB } = require('./services/sendLocationToDB');
+const { default: axios } = require('axios');
+const { calculateDistance } = require('./utils/calculateDistance');
 
-// ===================== Connection with DB and express =====================
+// Connection with DB and express
 app.use(express.json({ limit: '100mb' }));
 app.use(cors());
 
@@ -29,6 +31,21 @@ mongoose
     console.log('Connected to MongoDB...');
   });
 
+app.post('/notification', async (req, res) => {
+  if (req.query.token !== token) {
+    return res.send('Token is invalid');
+  }
+  if (JSON.stringify(req.body) === '{}') {
+    return res.status(400).send('Data is not provided in body');
+  }
+  if (req.body.message === '') {
+    return res.send('message is empty').status(400);
+  }
+
+  const result = await pushNotification(req.body);
+  res.send(result);
+});
+
 bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
 
 app.post(`/bot${token}`, (req, res) => {
@@ -38,29 +55,73 @@ app.post(`/bot${token}`, (req, res) => {
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
-// ===========================================================================
 
+// Telegram bot
 bot.onText(/\/start/, async (msg) => {
   askLocation(msg);
   sendLocationToDB(msg);
 });
 
-async function sendLocationToDB(msg) {
-  const isAvailableUser = await Users.findOne({ user_id: msg.from.id });
-  if (isAvailableUser) return;
+bot.on('location', (msg) => getPlaceName(msg, true));
 
-  try {
-    const user = new Users({
-      name: msg.from.first_name,
-      username: msg.from.username,
-      user_id: msg.from.id,
-    });
+bot.onText(/^[^/*].*/, async (msg) => {
+  const user = await Users.findOne({
+    user_id: msg.from.id,
+    location: { $exists: true },
+  });
 
-    await user.save();
-  } catch (ex) {
-    console.log(ex);
+  if (!user) {
+    askLocation(msg);
+    sendLocationToDB(msg);
+    return;
   }
-}
+
+  user.place = msg.text;
+  await user.save();
+
+  nearbySearch(msg);
+});
+
+bot.on('callback_query', function (message) {
+  const msg = message.message;
+
+  switch (message.data) {
+    case 'prev':
+      bot.answerCallbackQuery(message.id, {
+        text: 'Siz allaqachon birinchi sahifadasiz!',
+        show_alert: true,
+      });
+      return;
+
+    case 'last':
+      bot.answerCallbackQuery(message.id, {
+        text: 'Siz allaqachon oxirgi sahifadasiz!',
+        show_alert: true,
+      });
+      return;
+
+    case 'back':
+      bot.answerCallbackQuery(message.id, {
+        text: 'Ortga qaytmoqda!',
+        show_alert: false,
+      });
+      bot.deleteMessage(msg.chat.id, msg.message_id);
+      getPlaceName(message);
+      return;
+
+    case 'same':
+      return;
+
+    default:
+      break;
+  }
+
+  nearbySearch(msg, message.data, true);
+});
+
+bot.onText(/\/stop/, async (msg) => {
+  await Users.deleteOne({ user_id: msg.chat.id });
+});
 
 function askLocation(msg) {
   const opts = {
@@ -104,55 +165,21 @@ async function getPlaceName(msg, isNewLocation) {
   );
 }
 
-bot.on('location', (msg) => getPlaceName(msg, true));
+async function pushNotification({ message, image }) {
+  const usersIds = await Users.find().select('user_id name -_id');
 
-bot.onText(/^[^/*].*/, async (msg) => {
-  const user = await Users.findOne({
-    user_id: msg.from.id,
-    location: { $exists: true },
-  });
-
-  if (!user) {
-    askLocation(msg);
-    sendLocationToDB(msg);
-    return;
+  for (const id of usersIds) {
+    bot.sendPhoto(id.user_id, image, {
+      parse_mode: 'Markdown',
+      caption: message,
+      reply_markup: JSON.stringify({
+        inline_keyboard: [[{ text: `Tekshirish`, callback_data: 'back' }]],
+      }),
+    });
   }
 
-  user.place = msg.text;
-  await user.save();
-
-  nearbySearch(msg);
-});
-
-bot.on('callback_query', function (message) {
-  const msg = message.message;
-
-  if (message.data == 'prev') {
-    bot.answerCallbackQuery(message.id, {
-      text: 'Siz allaqachon birinchi sahifadasiz!',
-      show_alert: true,
-    });
-    return;
-  } else if (message.data == 'last') {
-    bot.answerCallbackQuery(message.id, {
-      text: 'Siz allaqachon oxirgi sahifadasiz!',
-      show_alert: true,
-    });
-    return;
-  } else if (message.data == 'back') {
-    bot.answerCallbackQuery(message.id, {
-      text: 'Ortga qaytmoqda!',
-      show_alert: false,
-    });
-    bot.deleteMessage(msg.chat.id, msg.message_id);
-    getPlaceName(message);
-    return;
-  } else if (message.data == 'same') {
-    return;
-  }
-
-  nearbySearch(msg, message.data, true);
-});
+  return 'Notification sent to users successfully';
+}
 
 async function nearbySearch(msg, index, isForEdit) {
   const user = await Users.findOne({
@@ -174,28 +201,43 @@ async function nearbySearch(msg, index, isForEdit) {
 
   const res = await axios(config).catch((err) => console.log(err));
   if (!res.data['results'][index]) {
-    return bot.sendMessage(
-      msg.chat.id,
-      `Afsuski bu joy yaqin atrofda topilmadi 😔`,
-      {
-        reply_markup: JSON.stringify({
-          inline_keyboard: [[{ text: `Ortga qaytish`, callback_data: 'back' }]],
-        }),
-      }
-    );
+    return notFound(msg);
   }
 
   const currentPlaceId = res.data['results'][index].place_id;
   const maxLen = res.data['results'].length;
-  return searchDetails(currentPlaceId, msg, index, maxLen, isForEdit);
+  return searchDetails(
+    currentPlaceId,
+    user.location,
+    msg,
+    index,
+    maxLen,
+    isForEdit
+  );
 }
 
-async function searchDetails(currentPlaceId, msg, index, maxLen, isForEdit) {
+async function searchDetails(
+  currentPlaceId,
+  userLocation,
+  msg,
+  index,
+  maxLen,
+  isForEdit
+) {
   const res = await axios({
     method: 'get',
     url: `https://maps.googleapis.com/maps/api/place/details/json?place_id=${currentPlaceId}&fields=name%2Crating%2Cformatted_address%2Cformatted_phone_number%2Cphotos%2Cgeometry%2Curl%2Copening_hours&key=${API_KEY}`,
     headers: {},
   });
+
+  const { lat, lng } = res.data.result.geometry.location;
+
+  res.data.result.distanceDetails = calculateDistance(
+    userLocation.latitude,
+    lat,
+    userLocation.longitude,
+    lng
+  );
 
   if (isForEdit) {
     editForNextRequest(res.data.result, maxLen, index + 1, msg);
@@ -232,7 +274,7 @@ async function editForNextRequest(data, maxLen, index, msg) {
   }
 }
 
-async function callback(data, maxLen, index, msg) {
+function callback(data, maxLen, index, msg) {
   const photo = data.photos ? data.photos[0]['photo_reference'] : '';
   const messageEnter = Object.assign(
     {},
@@ -249,3 +291,17 @@ async function callback(data, maxLen, index, msg) {
     messageEnter
   );
 }
+
+function notFound(msg) {
+  return bot.sendMessage(
+    msg.chat.id,
+    `Afsuski bu joy yaqin atrofda topilmadi 😔`,
+    {
+      reply_markup: JSON.stringify({
+        inline_keyboard: [[{ text: `Ortga qaytish`, callback_data: 'back' }]],
+      }),
+    }
+  );
+}
+
+exports.callback = callback;
