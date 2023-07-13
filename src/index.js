@@ -206,8 +206,9 @@ async function getPlaceName(msg, isNewLocation) {
   const opts = {
     reply_markup: JSON.stringify({
       keyboard: [
-        [{ text: 'Oziq ovqat' }, { text: 'Supermarket' }],
+        [{ text: 'Ovqat' }, { text: 'Supermarket' }],
         [{ text: 'Maktab' }, { text: 'Dorixona' }],
+        [{ text: 'Bank' }, { text: 'Avtobus Bekat' }],
       ],
       resize_keyboard: true,
       one_time_keyboard: true,
