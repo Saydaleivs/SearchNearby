@@ -35,15 +35,12 @@ mongoose
   });
 
 app.post('/notification', async (req, res) => {
-  if (req.query.token !== token) {
-    return res.send('Token is invalid');
-  }
-  if (JSON.stringify(req.body) === '{}') {
+  if (req.query.token !== token) return res.send('Token is invalid');
+
+  if (JSON.stringify(req.body) === '{}')
     return res.status(400).send('Data is not provided in body');
-  }
-  if (req.body.message === '') {
-    return res.send('message is empty').status(400);
-  }
+
+  if (req.body.message === '') return res.send('message is empty').status(400);
 
   const result = await pushNotification(req.body);
   res.send(result);
