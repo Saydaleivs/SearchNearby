@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema({
   place: {
     type: String,
   },
+  selectedRadius: {
+    type: Number,
+  },
   location: {
     latitude: {
       type: Number,

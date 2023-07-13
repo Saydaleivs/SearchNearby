@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,5 +18,8 @@
     "google-search-results-nodejs": "^2.1.0",
     "mongoose": "^7.2.0",
     "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }

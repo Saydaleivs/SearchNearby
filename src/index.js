@@ -3,10 +3,10 @@ require('dotenv').config();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const API_KEY = process.env.API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
-const WEBHOOK_URL = process.env.WEBHOOK_URL;
+// const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(token);
+const bot = new TelegramBot(token, { polling: true });
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -15,7 +15,10 @@ const { messageText, getPagination } = require('./templates');
 const { Users } = require('./models/users');
 const { sendLocationToDB } = require('./services/sendLocationToDB');
 const { default: axios } = require('axios');
-const { calculateDistance } = require('./utils/calculateDistance');
+const {
+  calculateDistance,
+  calculateDistanceForSort,
+} = require('./utils/calculateDistance');
 
 // Connection with DB and express
 app.use(express.json({ limit: '100mb' }));
@@ -46,12 +49,12 @@ app.post('/notification', async (req, res) => {
   res.send(result);
 });
 
-bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
+// bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
 
-app.post(`/bot${token}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
+// app.post(`/bot${token}`, (req, res) => {
+//   bot.processUpdate(req.body);
+//   res.sendStatus(200);
+// });
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
@@ -79,7 +82,8 @@ bot.onText(/^[^/*].*/, async (msg) => {
   user.place = msg.text;
   await user.save();
 
-  nearbySearch(msg);
+  // nearbySearch(msg);
+  askRadius(msg);
 });
 
 bot.on('callback_query', function (message) {
@@ -91,14 +95,14 @@ bot.on('callback_query', function (message) {
         text: 'Siz allaqachon birinchi sahifadasiz!',
         show_alert: true,
       });
-      return;
+      break;
 
     case 'last':
       bot.answerCallbackQuery(message.id, {
         text: 'Siz allaqachon oxirgi sahifadasiz!',
         show_alert: true,
       });
-      return;
+      break;
 
     case 'back':
       bot.answerCallbackQuery(message.id, {
@@ -107,21 +111,79 @@ bot.on('callback_query', function (message) {
       });
       bot.deleteMessage(msg.chat.id, msg.message_id);
       getPlaceName(message);
-      return;
+      break;
+
+    case '1000':
+      searchNearby(
+        { from: message.from, chat: message.from },
+        0,
+        false,
+        message.data
+      );
+      bot.deleteMessage(msg.chat.id, msg.message_id);
+      break;
+
+    case '3000':
+      searchNearby(
+        { from: message.from, chat: message.from },
+        0,
+        false,
+        message.data
+      );
+      bot.deleteMessage(msg.chat.id, msg.message_id);
+      break;
+
+    case '5000':
+      searchNearby(
+        { from: message.from, chat: message.from },
+        0,
+        false,
+        message.data
+      );
+      bot.deleteMessage(msg.chat.id, msg.message_id);
+      break;
+
+    case '10000':
+      searchNearby(
+        { from: message.from, chat: message.from },
+        0,
+        false,
+        message.data
+      );
+      bot.deleteMessage(msg.chat.id, msg.message_id);
+      break;
 
     case 'same':
-      return;
+      break;
 
     default:
-      break;
+      searchNearby(msg, message.data, true);
   }
-
-  nearbySearch(msg, message.data, true);
 });
 
 bot.onText(/\/stop/, async (msg) => {
   await Users.deleteOne({ user_id: msg.chat.id });
 });
+
+function askRadius(msg) {
+  const opts = {
+    reply_markup: JSON.stringify({
+      inline_keyboard: [
+        [
+          { text: `1km`, callback_data: '1000' },
+          { text: `3km`, callback_data: '3000' },
+          { text: `5km`, callback_data: '5000' },
+          { text: `10km`, callback_data: '10000' },
+        ],
+      ],
+    }),
+  };
+  bot.sendMessage(
+    msg.chat.id,
+    'Necha kilometr radius ichida qidirmoqchisiz',
+    opts
+  );
+}
 
 function askLocation(msg) {
   const opts = {
@@ -173,7 +235,7 @@ async function pushNotification({ message, image }) {
       parse_mode: 'Markdown',
       caption: message,
       reply_markup: JSON.stringify({
-        inline_keyboard: [[{ text: `Tekshirish`, callback_data: 'back' }]],
+        inline_keyboard: [[{ text: `Sinab ko'rish`, callback_data: 'back' }]],
       }),
     });
   }
@@ -181,10 +243,15 @@ async function pushNotification({ message, image }) {
   return 'Notification sent to users successfully';
 }
 
-async function nearbySearch(msg, index, isForEdit) {
+async function searchNearby(msg, index, isForEdit, radius) {
   const user = await Users.findOne({
     user_id: isForEdit ? msg.chat.id : msg.from.id,
   });
+
+  if (radius) {
+    user.selectedRadius = radius;
+    user.save();
+  }
 
   if (!user.location || !user.place) return;
   if (!index) {
@@ -195,7 +262,11 @@ async function nearbySearch(msg, index, isForEdit) {
 
   const config = {
     method: 'get',
-    url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${user.location.latitude}%2C${user.location.longitude}8&radius=1800&type=${user.place}&keyword=${user.place}&key=${API_KEY}`,
+    url: `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${
+      user.location.latitude
+    }%2C${user.location.longitude}8&radius=${
+      radius || user.selectedRadius
+    }&type=${user.place}&keyword=${user.place}&key=${API_KEY}`,
     headers: {},
   };
 
@@ -204,8 +275,25 @@ async function nearbySearch(msg, index, isForEdit) {
     return notFound(msg);
   }
 
-  const currentPlaceId = res.data['results'][index].place_id;
-  const maxLen = res.data['results'].length;
+  const results = res.data.results;
+
+  for (let i = 0; i < results.length; i++) {
+    const { lat, lng } = results[i].geometry.location;
+    const { latitude, longitude } = user.location;
+    results[i].distance = calculateDistanceForSort(
+      lat,
+      lng,
+      latitude,
+      longitude
+    );
+  }
+
+  results.sort((a, b) => {
+    return a.distance - b.distance;
+  });
+
+  const currentPlaceId = results[index].place_id;
+  const maxLen = results.length;
   return searchDetails(
     currentPlaceId,
     user.location,
@@ -283,6 +371,7 @@ function callback(data, maxLen, index, msg) {
       caption: messageText(data),
     }
   );
+
   bot.sendPhoto(
     msg.chat.id,
     photo
