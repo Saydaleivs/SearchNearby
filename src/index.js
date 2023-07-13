@@ -3,10 +3,10 @@ require('dotenv').config();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const API_KEY = process.env.API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
-// const WEBHOOK_URL = process.env.WEBHOOK_URL;
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token);
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -49,12 +49,12 @@ app.post('/notification', async (req, res) => {
   res.send(result);
 });
 
-// bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
+bot.setWebHook(`${WEBHOOK_URL}/bot${token}`);
 
-// app.post(`/bot${token}`, (req, res) => {
-//   bot.processUpdate(req.body);
-//   res.sendStatus(200);
-// });
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
@@ -82,7 +82,6 @@ bot.onText(/^[^/*].*/, async (msg) => {
   user.place = msg.text;
   await user.save();
 
-  // nearbySearch(msg);
   askRadius(msg);
 });
 
