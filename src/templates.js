@@ -31,7 +31,7 @@ function getPagination(current, maxpage) {
     reply_markup: JSON.stringify({
       inline_keyboard: [
         keys,
-        [{ text: `Ortga qaytish`, callback_data: 'back' }],
+        [{ text: `⬅️ Ortga qaytish`, callback_data: 'back' }],
       ],
     }),
   };

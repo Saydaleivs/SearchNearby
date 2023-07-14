@@ -62,9 +62,17 @@ bot.onText(/\/start/, async (msg) => {
   sendLocationToDB(msg);
 });
 
+bot.onText(/\/changeLocation/, async (msg) => {
+  askLocation(msg);
+});
+
 bot.on('location', (msg) => getPlaceName(msg, true));
 
 bot.onText(/^[^/*].*/, async (msg) => {
+  if (msg.text === '⬅️ Ortga qaytish') {
+    return askLocation(msg);
+  }
+
   const user = await Users.findOne({
     user_id: msg.from.id,
     location: { $exists: true },
@@ -110,35 +118,8 @@ bot.on('callback_query', function (message) {
       break;
 
     case '1000':
-      searchNearby(
-        { from: message.from, chat: message.from },
-        0,
-        false,
-        message.data
-      );
-      bot.deleteMessage(msg.chat.id, msg.message_id);
-      break;
-
     case '3000':
-      searchNearby(
-        { from: message.from, chat: message.from },
-        0,
-        false,
-        message.data
-      );
-      bot.deleteMessage(msg.chat.id, msg.message_id);
-      break;
-
     case '5000':
-      searchNearby(
-        { from: message.from, chat: message.from },
-        0,
-        false,
-        message.data
-      );
-      bot.deleteMessage(msg.chat.id, msg.message_id);
-      break;
-
     case '10000':
       searchNearby(
         { from: message.from, chat: message.from },
@@ -209,6 +190,7 @@ async function getPlaceName(msg, isNewLocation) {
         [{ text: 'Ovqat' }, { text: 'Supermarket' }],
         [{ text: 'Maktab' }, { text: 'Dorixona' }],
         [{ text: 'Bank' }, { text: 'Avtobus Bekat' }],
+        [{ text: '⬅️ Ortga qaytish' }],
       ],
       resize_keyboard: true,
       one_time_keyboard: true,
@@ -384,7 +366,9 @@ function notFound(msg) {
     `Afsuski bu joy yaqin atrofda topilmadi 😔`,
     {
       reply_markup: JSON.stringify({
-        inline_keyboard: [[{ text: `Ortga qaytish`, callback_data: 'back' }]],
+        inline_keyboard: [
+          [{ text: `⬅️ Ortga qaytish`, callback_data: 'back' }],
+        ],
       }),
     }
   );
