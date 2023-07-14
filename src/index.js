@@ -62,7 +62,7 @@ bot.onText(/\/start/, async (msg) => {
   sendLocationToDB(msg);
 });
 
-bot.onText(/\/changeLocation/, async (msg) => {
+bot.onText(/\/changelocation/, async (msg) => {
   askLocation(msg);
 });
 
